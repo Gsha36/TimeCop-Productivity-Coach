@@ -1,0 +1,18 @@
+# Core FastAPI and Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# AI and ML Libraries
+autogen>=0.2.0
+google-generativeai>=0.3.0
+openai>=1.0.0
+faster-whisper>=0.10.0
+scikit-learn>=1.3.0
+onnxruntime>=1.16.0
+
+# Environment and Configuration
+python-dotenv>=1.0.0
+
+# Standard Libraries (usually included with Python but listed for clarity)
+# os, tempfile, json, logging, re, textwrap, random, datetime, typing are built-in

@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from backend.agents.userproxy_ag import UserProxyAgent
@@ -7,6 +8,7 @@ from backend.agents.timeanalyze_ag import TimeAnalyzerAgent
 from backend.agents.insight_ag import InsightAgent
 from backend.agents.coach_ag import CoachAgent
 from backend.agents.memory_ag import MemoryAgent
+from backend.tools import github, google_calendar
 from backend.tools.vector_memory import memory_store
 from backend.tools.whisper_transcriber import transcribe_and_tag, extract_activity_insights
 import os
@@ -116,26 +118,89 @@ async def process_voice_log(file: UploadFile, user_id: str = Form(...)):
         raise HTTPException(status_code=500, detail=f"Voice processing failed: {e}")
 
 @app.get("/memory/{user_id}")
-async def get_user_memory(user_id: str, query: str = None, limit: int = 5):
-    """Query user's RAG memory"""
+async def get_user_memory(
+    user_id: str,
+    query: Optional[str] = None,
+    limit: int = 5
+):
     try:
-        if query:
-            memory_result = memory_store.query_memory(user_id, query, limit)
-        else:
-            memory_result = memory_store.query_memory(user_id, limit=limit)
-        
+        # 1. The flat, line-based output
+        memory_text = memory_store.query_memory(user_id, query=query, limit=limit)
+
+        # 2. Trend data
         trends = memory_store.get_trends(user_id)
-        
+
+        # 3. Build the items list from the in‑memory store
+        raw_docs = memory_store.memory_store.get(user_id, [])
+        recent = raw_docs[-limit:]
+        items = []
+        for doc in recent:
+            content = doc["content"]
+            items.append({
+                "timestamp": doc["timestamp"],
+                "type": doc["type"],
+                "llm_summary": content.get("llm_summary"),
+                "raw_input": content.get("raw_input"),
+            })
+
         return {
             "status": "success",
-            "memory": memory_result,
+            "memory_text": memory_text,
             "trends": trends,
-            "query_used": query
+            "query_used": query,
+            "items": items
         }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Memory query failed: {e}")
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Memory query failed: {str(e)}")
 
+@app.get("/dashboard/{user_id}")
+async def get_dashboard_analytics(user_id: str):
+    """
+    Returns three analytics series for the frontend dashboard:
+      1. time_distribution: hours per category
+      2. focus_trend: last 7 days of deep work hours
+      3. context_switches: last 7 days of task switches
+    """
+    try:
+        # 1. Fetch real data
+        gh_logs = github.fetch_activity(user_id)
+        cal_events = google_calendar.fetch_events(user_id)
+
+        # 2. Build distribution (example logic)
+        time_distribution = {
+            "Deep Work": sum(1 for e in gh_logs if e.get("action") == "commit"),
+            "Meetings": len(cal_events),
+            "Distraction": 2,           # replace with real NLP categorization
+            "Communication": 3,         # ditto
+            "Context Switching": 4      # ditto
+        }
+
+        # 3. Build focus trend (mocked, adapt to real timestamps)
+        focus_trend = [
+            {"date": f"2025-07-{20+i}", "deep_work_hours": 1.5 + (i % 3)}
+            for i in range(7)
+        ]
+
+        # 4. Build context switches per day (mocked)
+        context_switches = [
+            {"date": f"2025-07-{20+i}", "switches": 8 + (i * 2 % 5)}
+            for i in range(7)
+        ]
+
+        return {
+            "status": "success",
+            "time_distribution": time_distribution,
+            "focus_trend": focus_trend,
+            "context_switches": context_switches
+        }
+
+    except Exception as e:
+        raise HTTPException(500, f"Dashboard fetch failed: {e}")
+    
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""

@@ -1,7 +1,8 @@
+# vector_memory.py
+
 import json
 from datetime import datetime
-from typing import List, Dict
-import numpy as np
+from typing import Dict
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -13,11 +14,10 @@ class VectorMemoryStore:
         self.documents = {}
     
     def store_summary(self, user_id: str, summary: Dict, summary_type: str = "weekly"):
-        """Store summary with vector embeddings for RAG"""
+        """Store a structured summary dict with TF-IDF indexing."""
         if user_id not in self.memory_store:
             self.memory_store[user_id] = []
         
-        # Create structured document
         document = {
             "id": f"{user_id}_{len(self.memory_store[user_id])}",
             "user_id": user_id,
@@ -30,90 +30,68 @@ class VectorMemoryStore:
         self.memory_store[user_id].append(document)
         self.documents[document["id"]] = document
         
-        # Update vector embeddings
         self._update_vectors(user_id)
     
     def _create_text_representation(self, summary: Dict) -> str:
-        """Convert summary dict to searchable text"""
-        if isinstance(summary, dict):
-            text_parts = []
-            for key, value in summary.items():
-                if isinstance(value, (list, dict)):
-                    text_parts.append(f"{key}: {json.dumps(value)}")
-                else:
-                    text_parts.append(f"{key}: {value}")
-            return " ".join(text_parts)
-        return str(summary)
+        parts = []
+        for k, v in summary.items():
+            if isinstance(v, (list, dict)):
+                parts.append(f"{k}: {json.dumps(v)}")
+            else:
+                parts.append(f"{k}: {v}")
+        return " ".join(parts)
     
     def _update_vectors(self, user_id: str):
-        """Update TF-IDF vectors for user's documents"""
-        user_docs = self.memory_store.get(user_id, [])
-        if len(user_docs) < 2:
+        docs = self.memory_store.get(user_id, [])
+        if len(docs) < 2:
             return
-        
-        texts = [doc["text_representation"] for doc in user_docs]
+        texts = [d["text_representation"] for d in docs]
         try:
-            vectors = self.vectorizer.fit_transform(texts)
-            self.document_vectors[user_id] = vectors
+            self.document_vectors[user_id] = self.vectorizer.fit_transform(texts)
         except ValueError:
-            # Handle case where all documents are too similar
+            # all docs too similar
             pass
     
     def query_memory(self, user_id: str, query: str = None, limit: int = 5) -> str:
-        """RAG-style memory querying"""
         if user_id not in self.memory_store:
             return "No previous data found."
         
-        user_docs = self.memory_store[user_id]
-        
+        docs = self.memory_store[user_id]
         if query and user_id in self.document_vectors:
-            # Vector similarity search
             try:
-                query_vector = self.vectorizer.transform([query])
-                similarities = cosine_similarity(query_vector, self.document_vectors[user_id])[0]
-                
-                # Get top similar documents
-                top_indices = similarities.argsort()[-limit:][::-1]
-                relevant_docs = [user_docs[i] for i in top_indices if similarities[i] > 0.1]
+                qv = self.vectorizer.transform([query])
+                sims = cosine_similarity(qv, self.document_vectors[user_id])[0]
+                idx = sims.argsort()[-limit:][::-1]
+                docs = [docs[i] for i in idx if sims[i] > 0.1]
             except:
-                # Fallback to recent documents
-                relevant_docs = user_docs[-limit:]
+                docs = docs[-limit:]
         else:
-            # Return recent documents
-            relevant_docs = user_docs[-limit:]
+            docs = docs[-limit:]
         
-        # Format results
-        memory_text = []
-        for doc in relevant_docs:
-            memory_text.append(f"[{doc['timestamp'][:10]}] {doc['type']}: {doc['text_representation'][:200]}...")
-        
-        return "\n".join(memory_text)
+        lines = []
+        for d in docs:
+            summary = d["content"].get("llm_summary", d["text_representation"])
+            lines.append(f"[{d['timestamp'][:10]}] {d['type']}: {summary[:200]}...")
+        return "\n".join(lines)
     
     def get_trends(self, user_id: str, weeks: int = 4) -> Dict:
-        """Analyze trends from stored summaries"""
         if user_id not in self.memory_store:
             return {"error": "No data available"}
-        
-        recent_docs = self.memory_store[user_id][-weeks:]
-        
-        trends = {
-            "productivity_trend": "stable",  # This would be calculated from actual data
+        recent = self.memory_store[user_id][-weeks:]
+        return {
+            "productivity_trend": "stable",
             "focus_pattern": "improving",
             "meeting_load": "increasing",
             "context_switches": "decreasing",
-            "summary_count": len(recent_docs),
+            "summary_count": len(recent),
             "data_range": f"Last {weeks} weeks"
         }
-        
-        return trends
 
-# Global instance
+# global instance
 memory_store = VectorMemoryStore()
 
-def store_summary(user_id: str, summary: str):
-    """Backward compatibility function"""
-    memory_store.store_summary(user_id, {"summary": summary}, "general")
+def store_summary(user_id: str, summary: Dict, summary_type: str = "general"):
+    memory_store.store_summary(user_id, summary, summary_type)
 
-def query_memory(user_id: str):
-    """Backward compatibility function"""
-    return memory_store.query_memory(user_id)
+def query_memory(user_id: str, query: str = None, limit: int = 5):
+    return memory_store.query_memory(user_id, query=query, limit=limit)

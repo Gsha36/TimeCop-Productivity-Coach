@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Dashboard from './components/Dashboard';
 
 const API_BASE = 'http://127.0.0.1:8000';
 
@@ -468,7 +469,13 @@ const TimeCopApp = () => {
                     {typeof memoryData.trends === 'string' ? (
                       <p>{memoryData.trends}</p>
                     ) : (
-                      <p>Long-term trends will appear here</p>
+                      <ul className="list-disc pl-5 text-sm space-y-1">
+                        {Object.entries(memoryData.trends || {}).map(([key, val]) => (
+                          <li key={key}>
+                            <strong className="capitalize">{key.replace(/_/g, ' ')}:</strong> {val}
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
                 </div>
@@ -477,11 +484,29 @@ const TimeCopApp = () => {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-semibold text-gray-800 mb-3">Recent Memory Entries</h4>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {memoryData.memory ? (
-                    <pre className="text-sm text-gray-600 whitespace-pre-wrap">{memoryData.memory}</pre>
-                  ) : (
-                    <p className="text-gray-500 italic">No memory entries found</p>
-                  )}
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                    {memoryData.items && memoryData.items.length > 0 ? (
+                      memoryData.items.map((item, index) => (
+                        console.log(memoryData.items),
+                        <div key={index} className="bg-white p-4 rounded-lg shadow border">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-semibold text-purple-700">
+                              🕒 {new Date(item.timestamp).toLocaleString()} — {item.type}
+                            </span>
+                          </div>
+                          <p className="text-gray-800 mb-2">
+                            <strong>🧠 Summary:</strong> {item.llm_summary}
+                          </p>
+                          <details className="text-sm text-gray-600">
+                            <summary className="cursor-pointer text-blue-600">Show Raw Log</summary>
+                            <pre className="mt-2 whitespace-pre-wrap">{item.raw_input}</pre>
+                          </details>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 italic">No memory entries found</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -551,6 +576,13 @@ const TimeCopApp = () => {
               isActive={activeTab === 'memory'}
               onClick={setActiveTab}
             />
+            <TabButton
+             id="dashboard"
+             icon="📊"
+             label="Dashboard"
+             isActive={activeTab === 'dashboard'}
+             onClick={setActiveTab}
+            />
           </div>
         </div>
       </nav>
@@ -572,6 +604,7 @@ const TimeCopApp = () => {
         {activeTab === 'analyze' && renderAnalysisTab()}
         {activeTab === 'voice'   && renderVoiceTab()}
         {activeTab === 'memory'  && renderMemoryTab()}
+        {activeTab === 'dashboard' && <Dashboard userId={userId} />}
       </main>
 
       {/* Footer */}
