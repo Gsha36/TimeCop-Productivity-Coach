@@ -68,20 +68,28 @@ pip install -r requirements.txt
 ```
 
 #### Environment Configuration
-Create a `.env` file in the root directory:
-```env
-# Google AI Configuration
-GOOGLE_API_KEY=your_google_ai_api_key_here
-
-# OpenAI Configuration (optional)
-OPENAI_API_KEY=your_openai_api_key_here
-
-# GitHub API (for data fetching)
-GITHUB_TOKEN=your_github_token_here
-
-# Google Calendar API (optional)
-GOOGLE_CALENDAR_API_KEY=your_google_calendar_api_key_here
+1. Copy the environment template:
+```bash
+cp .env.template .env
 ```
+
+2. Edit the `.env` file and add your actual API keys:
+```env
+# Google AI Configuration (Required)
+GOOGLE_API_KEY=your_actual_google_ai_api_key
+GEMINI_API_KEY=your_actual_google_ai_api_key
+
+# OpenAI Configuration (Optional)
+OPENAI_API_KEY=your_actual_openai_api_key
+
+# GitHub API (Optional - for enhanced data fetching)
+GITHUB_TOKEN=your_actual_github_token
+
+# Google Calendar API (Optional)
+GOOGLE_CALENDAR_API_KEY=your_actual_google_calendar_api_key
+```
+
+**⚠️ Security Note**: Never commit your `.env` file to version control. The `.env.template` file is provided as a reference.
 
 ### 3. Frontend Setup
 
@@ -201,6 +209,25 @@ python -m pytest
 cd frontend
 npm test
 ```
+
+## 🔒 Security & Environment Setup
+
+### Environment Variables
+- **All API keys** are stored in `.env` file which is excluded from version control
+- **Template File**: Use `.env.template` as a reference for required environment variables
+- **Never Commit Keys**: The `.gitignore` file prevents accidental commit of sensitive files
+
+### Security Best Practices
+- **Production Security**: Use HTTPS in production environments
+- **Authentication**: Implement proper authentication for production use
+- **API Key Management**: Rotate API keys regularly and use least-privilege access
+- **Environment Isolation**: Use separate API keys for development and production
+
+### Getting API Keys
+1. **Google AI (Gemini)**: Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. **OpenAI**: Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
+3. **GitHub**: Visit [GitHub Personal Access Tokens](https://github.com/settings/tokens)
+4. **Google Calendar**: Visit [Google Cloud Console](https://console.cloud.google.com/)
 
 ## 🤝 Contributing
 

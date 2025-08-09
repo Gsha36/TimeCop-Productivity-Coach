@@ -8,7 +8,12 @@ from backend.tools.vector_memory import store_summary, query_memory
 
 # Load your Gemini key
 load_dotenv(".env", override=True)
-genai.configure(api_key="AIzaSyB3XnaVXMAzLgzG5TscSHbwlJt_BswvxY8")
+API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not API_KEY:
+    raise ValueError("GEMINI_API_KEY not found in environment variables. Please check your .env file.")
+
+genai.configure(api_key=API_KEY)
 
 class MemoryAgent(ConversableAgent):
     def __init__(self, name="MemoryAgent"):

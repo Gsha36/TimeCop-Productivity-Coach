@@ -13,7 +13,9 @@ genai.configure(api_key=API_KEY)
 
 class UserProxyAgent(ConversableAgent):
     def __init__(self, name="UserProxyAgent"):
-        genai.configure(api_key="AIzaSyB3XnaVXMAzLgzG5TscSHbwlJt_BswvxY8")
+        if not API_KEY:
+            raise ValueError("GEMINI_API_KEY not found in environment variables. Please check your .env file.")
+        genai.configure(api_key=API_KEY)
         super().__init__(
             name=name,
             system_message="""You are a UserProxyAgent that interfaces with human users.

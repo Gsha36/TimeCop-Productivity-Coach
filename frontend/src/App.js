@@ -530,7 +530,7 @@ const TimeCopApp = () => {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   TimeCop
                 </h1>
-                <p className="text-gray-600">Multi-Agent Productivity System</p>
+                <p className="text-gray-600">Your Personal Productivity Coach</p>
               </div>
             </div>
             <div className="flex items-center gap-4">

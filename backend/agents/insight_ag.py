@@ -5,11 +5,13 @@ import google.generativeai as genai
 
 load_dotenv(".env", override=True)
 
-API_KEY = load_dotenv("GEMINI_API_KEY")
+API_KEY = os.getenv("GEMINI_API_KEY")
 
 class InsightAgent(ConversableAgent):
     def __init__(self, name="InsightAgent"):
-        genai.configure(api_key="AIzaSyB3XnaVXMAzLgzG5TscSHbwlJt_BswvxY8")
+        if not API_KEY:
+            raise ValueError("GEMINI_API_KEY not found in environment variables. Please check your .env file.")
+        genai.configure(api_key=API_KEY)
         super().__init__(
             name=name,
             system_message="""You are an InsightAgent specialized in finding patterns and anomalies in productivity data.
